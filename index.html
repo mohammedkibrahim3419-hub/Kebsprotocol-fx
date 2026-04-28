@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Kebsprotocol FX</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#1a0533,#0d1f3c,#1a3320);min-height:100vh;color:white}
+header{background:rgba(255,255,255,0.05);padding:20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #f90}
+.logo{font-size:22px;font-weight:bold;color:#f90}
+.container{max-width:900px;margin:0 auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.stat-card{background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,165,0,0.3)}
+.stat-card .value{font-size:26px;font-weight:bold;color:#f90}
+.stat-card .label{color:#aaa;margin-top:4px}
+.card{background:rgba(255,255,255,0.05);border-radius:16px;padding:20px;border:1px solid rgba(255,165,0,0.3);margin-top:16px}
+.card h2{color:#f90;margin-bottom:14px}
+.input-group{margin-bottom:14px}
+.input-group label{display:block;color:#aaa;margin-bottom:6px}
+.input-group select,.input-group input{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;color:white;font-size:15px}
+.btn{width:100%;padding:12px;background:linear-gradient(90deg,#f90,#f50);border:none;border-radius:8px;color:white;font-size:17px;font-weight:bold;cursor:pointer;margin-top:8px}
+.quote-box{background:rgba(255,165,0,0.1);border-radius:8px;padding:14px;margin-top:14px;text-align:center;display:none}
+.quote-box .rate{font-size:22px;font-weight:bold;color:#f90}
+.balance-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.balance-item{background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;border-left:4px solid #f90}
+.balance-item .symbol{font-weight:bold;color:#f90}
+.balance-item .amount{font-size:18px;margin-top:4px}
+.wallet-input{display:flex;gap:8px;margin-bottom:16px}
+.wallet-input input{flex:1;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;color:white}
+.wallet-input button{padding:10px 16px;background:#f90;border:none;border-radius:8px;color:white;cursor:pointer;font-weight:bold}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">🌍 Kebsprotocol FX</div>
+<div style="color:#aaa;font-size:13px">Arc Testnet</div>
+</header>
+<div class="container">
+<div class="stats">
+<div class="stat-card"><div class="value">19</div><div class="label">Currencies</div></div>
+<div class="stat-card"><div class="value">3</div><div class="label">Continents</div></div>
+<div class="stat-card"><div class="value">ARC</div><div class="label">Testnet</div></div>
+</div>
+<div class="card">
+<h2>🔗 Connect Wallet</h2>
+<div class="wallet-input">
+<input id="walletAddr" placeholder="Enter wallet address 0x..."/>
+<button onclick="loadBalances()">Load</button>
+</div>
+</div>
+<div class="card">
+<h2>🔄 FX Swap</h2>
+<div class="input-group">
+<label>From</label>
+<select id="tokenIn">
+<option value="kUSD">💵 kUSD - US Dollar</option>
+<option value="kNGN">🇳🇬 kNGN - Nigerian Naira</option>
+<option value="kKES">🇰🇪 kKES - Kenya Shilling</option>
+<option value="kZAR">🇿🇦 kZAR - South African Rand</option>
+<option value="kINR">🇮🇳 kINR - Indian Rupee</option>
+<option value="kAED">🇦🇪 kAED - UAE Dirham</option>
+<option value="kSAR">🇸🇦 kSAR - Saudi Riyal</option>
+</select>
+</div>
+<div class="input-group">
+<label>Amount</label>
+<input type="number" id="amount" placeholder="Enter amount"/>
+</div>
+<div class="input-group">
+<label>To</label>
+<select id="tokenOut">
+<option value="kNGN">🇳🇬 kNGN - Nigerian Naira</option>
+<option value="kUSD">💵 kUSD - US Dollar</option>
+<option value="kKES">🇰🇪 kKES - Kenya Shilling</option>
+<option value="kZAR">🇿🇦 kZAR - South African Rand</option>
+<option value="kINR">🇮🇳 kINR - Indian Rupee</option>
+<option value="kAED">🇦🇪 kAED - UAE Dirham</option>
+<option value="kSAR">🇸🇦 kSAR - Saudi Riyal</option>
+</select>
+</div>
+<div class="quote-box" id="quoteBox">
+<div class="rate" id="quoteRate">-</div>
+<div style="color:#aaa;margin-top:8px">Exchange Rate</div>
+</div>
+<button class="btn" onclick="getQuote()">Get Quote 💱</button>
+</div>
+<div class="card">
+<h2>💰 Your Balances</h2>
+<div class="balance-grid" id="balanceGrid">
+<div style="color:#aaa;grid-column:span 2">Enter wallet address above to load balances</div>
+</div>
+</div>
+</div>
+<script>
+async function getQuote(){
+const tokenIn=document.getElementById('tokenIn').value;
+const tokenOut=document.getElementById('tokenOut').value;
+const amount=document.getElementById('amount').value;
+if(!amount||amount<=0)return alert('Enter an amount!');
+try{
+const res=await fetch('/api/quote?tokenIn='+tokenIn+'&tokenOut='+tokenOut+'&amount='+amount);
+const data=await res.json();
+document.getElementById('quoteBox').style.display='block';
+document.getElementById('quoteRate').textContent=data.amountIn+' '+tokenIn+' = '+parseFloat(data.amountOut).toFixed(4)+' '+tokenOut;
+}catch(err){alert('Error: '+err.message);}
+}
+async function loadBalances(){
+const address=document.getElementById('walletAddr').value;
+if(!address)return alert('Enter wallet address!');
+const grid=document.getElementById('balanceGrid');
+grid.innerHTML='<div style="color:#aaa">Loading...</div>';
+try{
+const res=await fetch('/api/balances/'+address);
+const data=await res.json();
+const flags={kUSD:'💵',kNGN:'🇳🇬',kKES:'🇰🇪',kZAR:'🇿🇦',kINR:'🇮🇳',kAED:'🇦🇪',kSAR:'🇸🇦'};
+grid.innerHTML=Object.entries(data).map(([symbol,balance])=>
+'<div class="balance-item"><div class="symbol">'+(flags[symbol]||'💰')+' '+symbol+'</div><div class="amount">'+parseFloat(balance).toFixed(4)+'</div></div>'
+).join('');
+}catch(err){grid.innerHTML='<div style="color:red">Error: '+err.message+'</div>';}
+}
+</script>
+</body>
+</html>
